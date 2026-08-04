@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Body
+from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import List, Annotated
@@ -28,26 +28,22 @@ def next_id(tasks):
     return tasks[-1].id + 1
 
 
+#Root 
 @app.get("/")
 async def root():
     return { "name": "Task API", "version": "1.0", "endpoints": ["/tasks"] }
 
+#Status
 @app.get("/health")
 async def health():
     return { "status": "ok" }
 
+#Read all the task 
 @app.get("/tasks")
 async def get_tasks():
     return tasks 
 
-# @app.get("/tasks/{id}")
-# async def get_task(id: int):
-#     for task in tasks:
-#         if task["id"] == id:
-#             return task
-        
-#     return JSONResponse(status_code= 404, content={"error" : f"Task {id} not found"})
-
+#Search & Read a specific task by id 
 @app.get("/tasks/{id}")
 async def get_task(id: int):
     for task in tasks:
@@ -56,7 +52,7 @@ async def get_task(id: int):
         
     return JSONResponse(status_code= 404, content= {"error": f"Task {id} not found"})
 
-
+#Create a new task 
 @app.post("/tasks")
 async def create_task(task: NewTask):
     if task.title == None or task.title == "string" or len(task.title) == 0:
@@ -66,7 +62,7 @@ async def create_task(task: NewTask):
         tasks.append(add_task)
         return JSONResponse(status_code= 201, content= add_task.model_dump())
 
-
+#Update an old task by id
 @app.put("/tasks/{id}")
 async def update_task(id: int, update: UpdateTask):
     if not update.title or update.title.strip() == "" or update.title == "string" or update.done == None:
@@ -80,7 +76,7 @@ async def update_task(id: int, update: UpdateTask):
             
     return JSONResponse(status_code= 404, content= {"error" : "Unknown id"})
 
-
+#Delete a specific task by id
 @app.delete("/tasks/{id}")
 async def delete_task(id: int):
     for task in tasks:
