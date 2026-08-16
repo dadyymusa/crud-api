@@ -1,9 +1,43 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from typing import List, Annotated
+from typing import List
+import sqlite3
+
 
 app = FastAPI()
+
+def get_db():
+    conn = sqlite3.connect("tasks.db")
+    conn.row_factory = sqlite3.Row
+
+    return conn
+
+def init_db():
+    conn = get_db()
+    cursor = conn.cursor()
+
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS tasks(
+            id INTEGER PRIMARY KEY, 
+            title TEXT,
+            done BOOLEAN
+        )
+    """)
+
+    count = cursor.execute("SELECT COUNT(*) FROM tasks").fetchone()[0]
+    if count == 0:
+        tasks = [(1, 'Clean House', False), (2, 'Clean Car', False), (3, 'Read a Book', False)]
+        cursor.executemany("""
+            INSERT INTO tasks(id, title, done)
+            VALUES(?,?,?)
+    """, tasks)
+
+    conn.commit()
+
+init_db()
+
 
 
 class Task(BaseModel):
@@ -17,12 +51,6 @@ class NewTask(BaseModel):
 class UpdateTask(BaseModel):
     title : str
     done : bool
-
-tasks : List[Task] = [
-    Task(id= 1, title= "Clean House", done= False),
-    Task(id= 2, title= "Read a Book", done= False), 
-    Task(id= 3, title= "Leetcode for 1hr", done= False)
-]
 
 def next_id(tasks):
     return tasks[-1].id + 1
@@ -85,3 +113,4 @@ async def delete_task(id: int):
             return JSONResponse(status_code= 204, content = None)
 
     return JSONResponse(status_code= 404, content= {"error" : "Unknown id"})
+
