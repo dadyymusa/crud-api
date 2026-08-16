@@ -53,7 +53,7 @@ class UpdateTask(BaseModel):
     title : str
     done : bool
 
-def next_id(tasks):
+def next_id():
     return tasks[-1].id + 1
 
 
@@ -97,33 +97,72 @@ async def get_task(id: int):
 @app.post("/tasks")
 async def create_task(task: NewTask):
     if task.title == None or task.title == "string" or len(task.title) == 0:
-        return JSONResponse(status_code= 400, content= {"error" : "No input given"})
+            return JSONResponse(status_code= 400, content= {"error" : "No input given"})
     else:
-        add_task = Task(id= next_id(tasks), title=  task.title, done= False)
-        tasks.append(add_task)
-        return JSONResponse(status_code= 201, content= add_task.model_dump())
+        conn = get_db()
+        curr = conn.cursor()
+
+        curr.execute("""INSERT INTO tasks(title, done)
+                        VALUES(?, ?)
+        
+        """, (task.title, False))
+
+        conn.commit()
+        new_id = curr.lastrowid
+        current_task = curr.execute("SELECT * FROM tasks WHERE id = ?", (new_id,)).fetchone()
+        conn.close()
+
+        return JSONResponse(status_code= 201, content= dict(current_task))
+
+
+
+    
+    # else:
+    #     add_task = Task(id= next_id(tasks), title=  task.title, done= False)
+    #     tasks.append(add_task)
+    
 
 #Update an old task by id
 @app.put("/tasks/{id}")
 async def update_task(id: int, update: UpdateTask):
+
     if not update.title or update.title.strip() == "" or update.title == "string" or update.done == None:
         return JSONResponse(status_code=400, content= {"error" : "Empty or Invalid Body"})
-    else:
-        for task in tasks:
-            if task.id == id:
-                task.title = update.title
-                task.done = update.done
-                return task.model_dump()
-            
-    return JSONResponse(status_code= 404, content= {"error" : "Unknown id"})
+    
+    conn = get_db()
+    curr = conn.cursor()
 
-#Delete a specific task by id
+    task = curr.execute("SELECT * FROM tasks WHERE id = ?", (id, )).fetchone()
+
+    if not task:
+        conn.close()
+        return JSONResponse(status_code= 404, content= {"error" : "Unknown id"})
+    else:
+        curr.execute("""UPDATE tasks SET title = ?, done = ? WHERE id = ?
+        """, (update.title, update.done, id))
+        
+        conn.commit()
+        conn.close()
+
+        
+
+            
+    
+
 @app.delete("/tasks/{id}")
 async def delete_task(id: int):
-    for task in tasks:
-        if task.id == id:
-            tasks.remove(task)
-            return JSONResponse(status_code= 204, content = None)
+    conn = get_db()
+    curr = conn.cursor()
 
-    return JSONResponse(status_code= 404, content= {"error" : "Unknown id"})
+    task = curr.execute("SELECT * FROM tasks WHERE id = ?", (id,)).fetchone()
+
+    if not task:
+        conn.close()
+        return JSONResponse(status_code=404, content= {"error": "Unknown id"})
+    else:
+        curr.execute("DELETE FROM tasks WHERE id = ?", (id,))
+        conn.commit()
+        conn.close()
+
+        return JSONResponse(status_code=204, content= None)
 
