@@ -145,3 +145,20 @@ Empty body - success, nothing to return.
 ### Example
 
 `curl -X DELETE http://localhost:8000/tasks/1`
+
+## Database & Setup Information
+
+### Why SQLite Was Chosen
+* **Zero Configuration:** Lightweight and serverless—no separate database server process to install, configure, or maintain.
+* **Built-in Python Support:** Uses Python's native `sqlite3` standard library, eliminating the need for heavy external drivers during early development.
+* **Single-File Portability:** Storing the database as a single file makes local development, testing, and sharing easy across environments.
+
+---
+
+### Database File Location
+The database file is created and stored locally in the root directory of the project:
+`./tasks.db`
+
+![Database Screenshot](/assets/database-view.png)
+
+![Database Screenshot](/assets/database-query-view.png)
