@@ -35,6 +35,7 @@ def init_db():
     """, tasks)
 
     conn.commit()
+    conn.close()
 
 init_db()
 
@@ -69,16 +70,28 @@ async def health():
 #Read all the task 
 @app.get("/tasks")
 async def get_tasks():
-    return tasks 
+    conn = get_db()
+    curr = conn.cursor()
+
+    tasks = curr.execute("SELECT * from tasks").fetchall()
+
+    conn.close()
+    return tasks
 
 #Search & Read a specific task by id 
 @app.get("/tasks/{id}")
 async def get_task(id: int):
-    for task in tasks:
-        if task.id == id:
-            return task
-        
-    return JSONResponse(status_code= 404, content= {"error": f"Task {id} not found"})
+    conn = get_db()
+    curr = conn.cursor()
+    task = curr.execute("SELECT * FROM tasks WHERE id = ?", (id, )).fetchone()
+
+    conn.close()
+
+    if not task:
+        return JSONResponse(status_code= 404, content= {"error": f"Task {id} not found"})
+    
+    return task
+    
 
 #Create a new task 
 @app.post("/tasks")
