@@ -146,9 +146,7 @@ async def update_task(id: int, update: UpdateTask):
 
         
 
-            
-    
-
+# Deletes and old task by id 
 @app.delete("/tasks/{id}")
 async def delete_task(id: int):
     conn = get_db()
